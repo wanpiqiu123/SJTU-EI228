@@ -10,6 +10,15 @@ int distance(Point pt1, Point pt2) {
     return dis;
 }
 
+int distance(point pt1, point pt2) {
+    int dis=abs(pt1.x-pt2.x)+abs(pt1.y-pt2.y);
+    return dis;
+}
+
+double distance(pointd pt1, pointd pt2) {
+    double dis=abs(pt1.x-pt2.x)+abs(pt1.y-pt2.y);
+    return dis;}
+
 vector<Point> corner(vector<vector<Point>> vec, vector<Point2f> &result, Mat mat) {
 //    leftup,rightup,leftdown,rightdown
     vector<Point2f> contour ;
@@ -96,23 +105,22 @@ void good_position(Mat &src) {
             }
         }
     }
-//    imshow("dst", dst);
+    imshow("dst", dst);
 
     Mat gray_image(src.size(),CV_8UC1);
     cvtColor(dst,gray_image,CV_HSV2BGR);
     dst.convertTo(gray_image, CV_8UC1,255); //should first transfer it to CV_8UC1 for "find_contour"
     cvtColor(gray_image,gray_image,CV_BGR2GRAY);
-    inRange(gray_image,threshold_low,200,gray_image); //inrange has an upper bound and a lower bound
-//    threshold(gray_image,gray_image,100,255,CV_THRESH_BINARY);
+//    inRange(gray_image,threshold_low,200,gray_image); //inrange has an upper bound and a lower bound
+    threshold(gray_image,gray_image,230,255,CV_THRESH_BINARY);
 //    imshow("threshold",gray_image);
-
-    Mat element = getStructuringElement(MORPH_RECT, Size(3,3));
-//    dilate(gray_image,gray_image,element);
+    Mat element = getStructuringElement(MORPH_RECT, Size(5,5));
+    dilate(gray_image,gray_image,element);
 //    erode(gray_image,gray_image,element);
-//    imshow("Morphology",gray_image);
-    morphologyEx(gray_image,gray_image,MORPH_CLOSE,element);
+//    morphologyEx(gray_image,gray_image,MORPH_CLOSE,element);
 //    Mat morph;
 //    morphologyEx(gray_image,morph,MORPH_OPEN,element);
+    imshow("Morphology",gray_image);
 
     vector<vector<Point>>contours;
     vector<Vec4i> hierarchy;
@@ -139,21 +147,26 @@ void good_position(Mat &src) {
 //        cout<<'('<<result[i].x<<','<<result[i].y<<')'<<endl;
 //    }
     draw_vec(result,resultImage);
-//    imshow("contour",resultImage);
+    imshow("contour",resultImage);
 //    imshow("Morphology",morph);
 
     perspective(result,src ,src);
     Mat correct=src;
     imshow("correct",src);
-//    imwrite("result.png",correct);
+    imwrite("result_car1.png",correct);
 
 //    waitKey();
+}
+
+vector<Point2d> car_pos(Mat &src) {
+    vector<Point2d> vec;
+    return vec;
 }
 
 int** matrix(Mat src, int &new_row, int &new_col) {
     Mat gray;
     cvtColor(src,gray,CV_BGR2GRAY);
-    threshold(gray,gray,threshold_low,255,CV_THRESH_BINARY);
+    threshold(gray,gray,110,255,CV_THRESH_BINARY);
 //    imshow("gray",gray);
 //    waitKey(0);
 //    Mat drawing = gray;
@@ -191,7 +204,7 @@ int** matrix(Mat src, int &new_row, int &new_col) {
 //    imshow("contour",resultImage);
     Mat car = Mat ::zeros(gray.size(),CV_8U);
     car=resultImage-gray;
-//    imshow("gray",car);
+//    imshow("car",car);
     gray=resultImage;
     // change the mat into an array
     for (int i = 0; i < row; i ++){
@@ -206,7 +219,7 @@ int** matrix(Mat src, int &new_row, int &new_col) {
 //        cout<<endl;
 //    }
 
-    int core_sz=20;
+
     new_row=row/core_sz;
     new_col=row/core_sz;
     int **small_array = new int *[new_row];
@@ -355,13 +368,13 @@ void Map::road_grade() {
     core_processing(2);
 }
 
-void Map::uniwalk(char ch, point &pt, int seq, char s_e) {
+void Map::uniwalk(char ch, point &pt, point pt2, int seq, char s_e) {
     int x=pt.x;
     int y=pt.y;
     switch (ch){
         case 'u':{
             while (1){
-                if(y==0||(matrix[x-1][y]<matrix[x][y]&&road[x-1][y]>=0)||road[x][y]<-1){
+                if(y==0||(matrix[x-1][y]<matrix[x][y]&&road[x-1][y]>=0)||road[x][y]<-1||point(x,y)==pt2){
                     break;
                 }
                 road[x][y]=seq;
@@ -379,7 +392,7 @@ void Map::uniwalk(char ch, point &pt, int seq, char s_e) {
         }
         case 'd':{
             while (1){
-                if(y==row||(matrix[x+1][y]<matrix[x][y]&&road[x+1][y]>=0)||road[x][y]<-1){
+                if(y==row||(matrix[x+1][y]<matrix[x][y]&&road[x+1][y]>=0)||road[x][y]<-1||point(x,y)==pt2){
                     break;
                 }
                 road[x][y]=seq;
@@ -397,7 +410,7 @@ void Map::uniwalk(char ch, point &pt, int seq, char s_e) {
         }
         case 'l':{
             while (1){
-                if(x==0||(matrix[x][y-1]<matrix[x][y]&&road[x][y-1]>=0)||road[x][y]<-1){
+                if(x==0||(matrix[x][y-1]<matrix[x][y]&&road[x][y-1]>=0)||road[x][y]<-1||point(x,y)==pt2){
                     break;
                 }
                 road[x][y]=seq;
@@ -415,7 +428,7 @@ void Map::uniwalk(char ch, point &pt, int seq, char s_e) {
         }
         case 'r':{
             while (1){
-                if(x==col||(matrix[x][y+1]<matrix[x][y]&&road[x][y+1]>=0)||road[x][y]<-1){
+                if(x==col||(matrix[x][y+1]<matrix[x][y]&&road[x][y+1]>=0)||road[x][y]<-1||point(x,y)==pt2){
                     break;
                 }
                 road[x][y]=seq;
@@ -432,6 +445,7 @@ void Map::uniwalk(char ch, point &pt, int seq, char s_e) {
             break;
         }
     }
+//    road[x][y]=seq;
     pt.x=x;
     pt.y=y;
 
@@ -441,22 +455,40 @@ char Map::max_grade(point pt) {
     char ch=' ';
     int x=pt.x;
     int y=pt.y;
-    int max1=max(road[x-1][y],road[x+1][y]);
-    int max2=max(road[x][y-1],road[x][y+1]);
+    int u,d,l,r;
+    if (x==0)
+        u=-100;
+    else u=road[x-1][y];
+    if (x==row)
+        d=-100;
+    else d=road[x+1][y];
+    if (y==0)
+        l=-100;
+    else l=road[x][y-1];
+    if (y==col)
+        r=-100;
+    else r=road[x][y+1];
+    int max1=max(u,d);
+    int max2=max(l,r);
     int max3=max(max1,max2);
-    if(max3==road[x][y-1])
-        ch='l';
-    else if(max3==road[x][y+1])
-        ch='r';
-    else if(max3==road[x-1][y])
-        ch='u';
-    else if(max3==road[x+1][y])
-        ch='d';
-    return ch;
+    vector<char> choice;
+    if(max3==l)
+        choice.push_back('l');
+    if(max3==r)
+        choice.push_back('r');
+    if(max3==u)
+        choice.push_back('u');
+    if(max3==d)
+        choice.push_back('d');
+    int sz=choice.size();
+    int pos=rand()%sz;
+//    cout<<pos<<endl;
+    return choice[pos];
 }
 
 char Map::walk_choice(point pt) {
     char ch='u';
+    char choice=max_grade(pt);
     if(pt.x==0)
         ch='d';
     else if(pt.x==row-1)
@@ -465,18 +497,19 @@ char Map::walk_choice(point pt) {
         ch='r';
     else if(pt.y==col-1)
         ch='l';
-    else if(max_grade(pt)=='r')
+    else if(choice=='r')
         ch='r';
-    else if(max_grade(pt)=='l')
+    else if(choice=='l')
         ch='l';
-    else if(max_grade(pt)=='d')
+    else if(choice=='d')
         ch='d';
-    else if(max_grade(pt)=='u')
+    else if(choice=='u')
         ch='u';
     return ch;
 }
 
 void Map::final_road(int end_point) {
+
 //    q_s_num();
     if(end_point==0){
 
@@ -509,50 +542,110 @@ void Map::final_road(int end_point) {
         i=start_q.front().x;
         j=start_q.front().y;
         route[i][j]=1;
+        route_q.push(pointd(i,j));
         start_q.pop();
     }
 }
 
 int** Map::road_map() {
-    road = new int*[row];
-    for (int i = 0; i < row; ++i) {
-        road[i] = new int[col];
-        for (int j = 0; j < col; ++j) {
-            road[i][j]=matrix[i][j];
+    srand(time(NULL));
+    int ep;
+    bool flag=true;
+    while(flag) {
+        road = new int*[row];
+        for (int i = 0; i < row; ++i) {
+            road[i] = new int[col];
+            for (int j = 0; j < col; ++j) {
+                road[i][j]=matrix[i][j];
+            }
         }
-    }
-    route = new int*[row];
-    for (int i = 0; i < row; ++i) {
-        route[i] = new int[col];
-        for (int j = 0; j < col; ++j) {
-            route[i][j]=0;
+        route = new int*[row];
+        for (int i = 0; i < row; ++i) {
+            route[i] = new int[col];
+            for (int j = 0; j < col; ++j) {
+                route[i][j]=0;
+            }
         }
-    }
-    int end_point; // 0:entrance 1:exit
-    point p1=entrance;
-    point p2=exit;
-    int g1=-2;
-    int g2=-10;
-    while (true) {
+        int end_point; // 0:entrance 1:exit
+        point p1 = entrance;
+        point p2 = exit;
+        int g1 = -2;
+        int g2 = -20;
+        int count = 0;
+        while(!start_q.empty())
+            start_q.pop();
+        while(!end_s.empty())
+            end_s.pop();
+        while (count++ <= 6) {
 
-        uniwalk(walk_choice(p1), p1,g1,'s');
-        g1--;
+            uniwalk(walk_choice(p1), p1,p2, g1, 's');
+            g1--;
 //        print_road();
-        if(road[p1.x][p1.y]<0) {
-            end_point = 0;
-            break;
-        }
+            if (-20>=road[p1.x][p1.y]&&road[p1.x][p1.y]>-10) {
+                end_point = 0;
+                break;
+            }
 
-        uniwalk(walk_choice(p2),p2,g2,'e');
-        g2++;
+            uniwalk(walk_choice(p2), p2,p1, g2, 'e');
+            g2++;
 //        print_road();
-        if(p1==p2||road[p2.x][p2.y]<0) {
-            end_point = 1;
-            break;
+            if (p1 == p2 || (-10<=road[p2.x][p2.y]&&road[p2.x][p2.y]<0)) {
+                end_point = 1;
+                flag=false;
+                break;
+            }
         }
+//        print_road();
+        ep=end_point;
     }
-    final_road(end_point);
+    final_road(ep);
     return road;
 }
 
+void signal(char ch) {
+    cout<<ch;
+}
+
+void turnto(pointd dst,Car &car) {
+    signal('e');
+    double direction=(dst.y-car.center.y)/(dst.x-car.center.x);
+    while(fabs(atan(car.slope)-atan(direction))*PI2DEGREE>5){
+        signal('a');
+        car.slope=(car.front.y-car.back.y)/(car.front.x-car.back.x);
+    }
+}
+
+char turning(char ch) {
+
+    return ch;
+}
+
+void Map::car_run(Mat &src) {
+    vector<Point2d> car = car_pos(src);
+    Point2d front = car[0];
+    Point2d back = car[1];
+    pointd center((front.x+back.x)/2,(front.y+back.y)/2);
+    double route_x = center.x;
+    double route_y = center.y;
+    double slope;
+    car1.init(front,back,center,slope);
+    if(front.x-back.x==0)
+        slope=9999;
+    else slope= (front.y-back.y)/(front.x-back.x);
+    pointd current = route_q.front();
+    pointd Next;
+    route_q.pop();
+    while(!route_q.empty()){
+        Next=route_q.front();
+        route_q.pop();
+        if(distance(Next,center)<=1)
+            break;
+        else if(distance(Next,center)>=3)
+            turnto(Next,car1);
+        else{
+
+
+        }
+    }
+}
 
