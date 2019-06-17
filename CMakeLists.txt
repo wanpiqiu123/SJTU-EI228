@@ -3,6 +3,6 @@ project(visual)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(visual main.cpp head.h function.cpp number.h)
-find_package(opencv REQUIRED)
+add_executable(visual main.cpp head.h function.cpp number.h bluetooth.cpp)
+find_package(OpenCV REQUIRED)
 target_link_libraries(visual ${OpenCV_LIBS})

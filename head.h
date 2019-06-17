@@ -12,12 +12,26 @@
 #include <vector>
 #include <stack>
 #include <queue>
+#include <set>
 #include <algorithm>
 #include <ctime>
 #include <cstdlib>
+#include <unistd.h>
+#include     <stdio.h>      /*标准输入输出定义*/
+#include     <stdlib.h>     /*标准函数库定义*/
+#include     <sys/types.h>
+#include     <sys/stat.h>
+#include     "string.h"
+#include     <fcntl.h>      /*文件控制定义*/
+#include     <termios.h>    /*PPSIX 终端控制定义*/
+#include     <errno.h>      /*错误号定义*/
+#define FALSE  -1
+#define TRUE   0
 
 using namespace std;
 using  namespace cv;
+
+
 
 struct point{
     int x=0;
@@ -52,6 +66,16 @@ struct pointd{
     pointd(double x1, double y1){
         x=x1;
         y=y1;
+    }
+    bool operator<(const pointd &pt){
+        if (this->x < pt.x)
+            return true;
+        else return false;
+    }
+    bool operator>(const pointd &pt){
+        if (this->x > pt.x)
+            return true;
+        else return false;
     }
     bool operator==(pointd &pt){
         if (this->x == pt.x && this->y==pt.y)
@@ -90,14 +114,19 @@ vector<Point>corner (vector<vector<Point>> vec, vector<Point2f> &result, Mat mat
 void draw_vec(vector<Point> vec, Mat &mat);
 void draw_vec(vector<Point2f> vec, Mat &mat); //draw the corner vertices
 void perspective(vector<Point2f> corner,Mat src, Mat &correct); //change the graph into good position
-void good_position(Mat &src); // operations on the good graph
-vector<Point2d> car_pos(Mat & src);
-char turning(char ch);
-void turnto(pointd dst, Car &car);
+vector<Point2f> good_position(Mat &src); // operations on the good graph
+Point2d car_front(Mat src);
+Point2d car_back(Mat src);
+int turnto(pointd dst, Car &car, int nwrite, int nread, int fd);
 int** matrix(Mat src, int &new_row, int &new_col);
 int distance(point pt1, point pt2);
 double distance(pointd pt1, pointd pt2);
-void signal(char ch);
+int nearest(pointd pt, vector<pointd> vec);
+int OpenDev(char *Dev);
+void set_speed(int fd, int speed);
+int set_Parity(int fd,int databits,int stopbits,int parity);
+
+void signal(char ch, int nwrite, int nread, int fd);
 
 class Map{
 
@@ -116,9 +145,19 @@ private:
     char walk_choice(point pt);
     queue<point> start_q;
     stack<point> end_s;
-    queue<pointd> route_q;
+
 public:
     Map(int** m, int new_row, int new_col){
+        matrix=m;
+        row=new_row;
+        col=new_col;
+    }
+    Map(){};
+    queue<pointd> route_q;
+    set<pointd> turning_point_set;
+    vector<pointd> turning_point;
+    void sort_turning();
+    void Map_init(int** m, int new_row, int new_col){
         matrix=m;
         row=new_row;
         col=new_col;
@@ -149,6 +188,14 @@ public:
 
     int** road_map();
 
+    void print_route_q(){
+        queue<pointd> tmp=route_q;
+        while (!tmp.empty()){
+            cout<<tmp.front()<<endl;
+            tmp.pop();
+        }
+    }
+
     void q_s_num(){
         cout<<"queue: "<<start_q.size()<<" stack: "<<end_s.size()<<endl;
     }
@@ -164,7 +211,16 @@ public:
 
     }
 
-    void car_run(Mat &src);
+    void print_turning_point(){
+        for (int i = 0; i < turning_point.size(); ++i) {
+            cout<<turning_point[i]<<endl;
+        }
+        cout<<endl;
+    }
+
+    bool turning(pointd ch);
+
+    void car_run(Mat src, int nwrite, int nread, int fd);
 };
 
 

@@ -4,6 +4,7 @@
 
 #include "head.h"
 #include "number.h"
+bool lr=false;
 
 int distance(Point pt1, Point pt2) {
     int dis=abs(pt1.x-pt2.x)+abs(pt1.y-pt2.y);
@@ -17,7 +18,8 @@ int distance(point pt1, point pt2) {
 
 double distance(pointd pt1, pointd pt2) {
     double dis=abs(pt1.x-pt2.x)+abs(pt1.y-pt2.y);
-    return dis;}
+    return dis;
+}
 
 vector<Point> corner(vector<vector<Point>> vec, vector<Point2f> &result, Mat mat) {
 //    leftup,rightup,leftdown,rightdown
@@ -81,7 +83,7 @@ void perspective(vector<Point2f> corner, Mat src, Mat &correct) {
     resize(correct,correct,Size(600,600));
 }
 
-void good_position(Mat &src) {
+vector<Point2f> good_position(Mat &src) {
     Mat mask;
     Mat bgr;
     Mat hsv;
@@ -105,7 +107,7 @@ void good_position(Mat &src) {
             }
         }
     }
-    imshow("dst", dst);
+//    imshow("dst", dst);
 
     Mat gray_image(src.size(),CV_8UC1);
     cvtColor(dst,gray_image,CV_HSV2BGR);
@@ -120,7 +122,7 @@ void good_position(Mat &src) {
 //    morphologyEx(gray_image,gray_image,MORPH_CLOSE,element);
 //    Mat morph;
 //    morphologyEx(gray_image,morph,MORPH_OPEN,element);
-    imshow("Morphology",gray_image);
+//    imshow("Morphology",gray_image);
 
     vector<vector<Point>>contours;
     vector<Vec4i> hierarchy;
@@ -136,77 +138,214 @@ void good_position(Mat &src) {
             ++iter;
         }
     }
-
     vector<Point2f> result;
+
     Mat resultImage = Mat ::zeros(gray_image.size(),CV_8U);
-    drawContours(resultImage, contours, -1, Scalar(255, 255, 255));
+//    drawContours(resultImage, contours, -1, Scalar(255, 255, 255));
 
     Mat dots(gray_image.size(),CV_8UC1);
     corner(contours,result,resultImage);
 //    for (int i = 0; i < result.size(); ++i) {
 //        cout<<'('<<result[i].x<<','<<result[i].y<<')'<<endl;
 //    }
-    draw_vec(result,resultImage);
-    imshow("contour",resultImage);
+//    draw_vec(result,resultImage);
+//    imshow("contour",resultImage);
 //    imshow("Morphology",morph);
 
     perspective(result,src ,src);
-    Mat correct=src;
+    Mat correct=src.clone();
     imshow("correct",src);
-    imwrite("result_car1.png",correct);
+//    imwrite("result_car1.png",correct);
 
 //    waitKey();
+    return result;
 }
 
-vector<Point2d> car_pos(Mat &src) {
-    vector<Point2d> vec;
-    return vec;
-}
+Point2d car_front(Mat src) {
+    Mat green=src.clone();
 
-int** matrix(Mat src, int &new_row, int &new_col) {
-    Mat gray;
-    cvtColor(src,gray,CV_BGR2GRAY);
-    threshold(gray,gray,110,255,CV_THRESH_BINARY);
-//    imshow("gray",gray);
-//    waitKey(0);
-//    Mat drawing = gray;
-    //src:600*600
-//    Mat kern = (Mat_<char>(3,3) << 1,1,1,1,1,1,1,1,1);
-//    Mat kern = getStructuringElement(MORPH_RECT,Size(20,20));
-//    filter2D(gray,gray,-1,kern);
-//    rectangle(drawing,Point(500,0),Point(540,40),Scalar(255,0,0),-1);
+//  GREEN(FRONT)
 
-    int row = gray.rows;
-    int col = gray.cols;
-    cout<<"row: "<<row<<" col: "<<col<<endl;
-    int **array = new int *[row];
-    for (int i = 0; i < row; i ++){
-        array[i] = new int[col];
+    Mat mask;
+    Mat bgr;
+    Mat hsv;
+    src.convertTo(bgr, CV_32FC3, 1.0 / 255, 0);
+    //颜色空间转换
+    cvtColor(bgr, hsv, COLOR_BGR2HSV);
+    inRange(hsv, Scalar(hmin_g, smin_g / float(smin_Max), vmin / float(vmin_Max)), Scalar(hmax, smax_g / float(smax_Max), vmax / float(vmax_Max)), mask);
+//    imshow("mask",mask);
+
+
+    //只保留
+    Mat dst;
+    dst = Mat(src.size(), CV_32FC3,Scalar(0,0,0));
+    for (int r = 0; r < bgr.rows; r++)
+    {
+        for (int c = 0; c < bgr.cols; c++)
+        {
+            if (mask.at<uchar>(r, c) == 255)
+            {
+                dst.at<Vec3f>(r, c) = bgr.at<Vec3f>(r, c);
+            }
+        }
     }
-
-
+    Mat gray_image(src.size(),CV_8UC1);
+    cvtColor(dst,gray_image,CV_HSV2BGR);
+    dst.convertTo(gray_image, CV_8UC1,255); //should first transfer it to CV_8UC1 for "find_contour"
+//    imshow("gray_image",gray_image);
+//    waitKey();
+    cvtColor(gray_image,gray_image,CV_BGR2GRAY);
+    threshold(gray_image,gray_image,110,255,CV_THRESH_BINARY);
+    Mat element = getStructuringElement(MORPH_RECT, Size(3,3));
+    dilate(gray_image,gray_image,element);
+    erode(gray_image,gray_image,element);
+//    imshow("green", gray_image);
+//    waitKey();
     vector<vector<Point>>contours;
     vector<Vec4i> hierarchy;
-    findContours(gray, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+    findContours(gray_image, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+
     vector <vector<Point>>::iterator iter = contours.begin();
     for (; iter != contours.end();) {
         double g_dConArea = contourArea(*iter);
 //        cout<<g_dConArea<<endl;
-        if (g_dConArea < 10000) {
+        if (g_dConArea < 200) {
             iter = contours.erase(iter);
         } else {
             ++iter;
         }
     }
-    vector<Point2f> result;
-    Mat resultImage = Mat ::zeros(gray.size(),CV_8U);
-    drawContours(resultImage, contours, -1, Scalar(255, 255, 255),-1);
+    Mat resultImage = Mat ::zeros(gray_image.size(),CV_8U);
+    drawContours(resultImage, contours, -1, Scalar(255, 255, 255));
 //    imshow("contour",resultImage);
-    Mat car = Mat ::zeros(gray.size(),CV_8U);
-    car=resultImage-gray;
-//    imshow("car",car);
-    gray=resultImage;
-    // change the mat into an array
+    RotatedRect bound_rect=minAreaRect(contours[0]);
+//    circle(gray_image,bound_rect.center,3,Scalar(0,0,0),-1,LINE_AA);
+//    imshow("draw",gray_image);
+//    waitKey();
+    destroyWindow("draw");
+    Point2d center(0.0,0.0);
+    center= Point2d(bound_rect.center.y,bound_rect.center.x);
+    cout<<"Front: "<<center<<endl;
+    return center;
+}
+
+Point2d car_back(Mat src) {
+    Mat red=src.clone();
+
+//  RED(BACK)
+
+    Mat mask;
+    Mat bgr;
+    Mat hsv;
+    src.convertTo(bgr, CV_32FC3, 1.0 / 255, 0);
+    //颜色空间转换
+    cvtColor(bgr, hsv, COLOR_BGR2HSV);
+    inRange(hsv, Scalar(hmin, smin_r / float(smin_Max), vmin / float(vmin_Max)), Scalar(hmax_r, smax / float(smax_Max), vmax_r / float(vmax_Max)), mask);
+//    imshow("mask",mask);
+//    waitKey();
+
+    //只保留
+    Mat dst;
+    dst = Mat(src.size(), CV_32FC3,Scalar(0,0,0));
+    for (int r = 0; r < bgr.rows; r++)
+    {
+        for (int c = 0; c < bgr.cols; c++)
+        {
+            if (mask.at<uchar>(r, c) == 255)
+            {
+                dst.at<Vec3f>(r, c) = bgr.at<Vec3f>(r, c);
+            }
+        }
+    }
+    Mat gray_image(src.size(),CV_8UC1);
+    cvtColor(dst,gray_image,CV_HSV2BGR);
+//    imshow("cvcolor",dst);
+    dst.convertTo(gray_image, CV_8UC1,255); //should first transfer it to CV_8UC1 for "find_contour"
+    cvtColor(gray_image,gray_image,CV_BGR2GRAY);
+    threshold(gray_image,gray_image,50,255,CV_THRESH_BINARY);
+    Mat element = getStructuringElement(MORPH_RECT, Size(3,3));
+    dilate(gray_image,gray_image,element);
+    erode(gray_image,gray_image,element);
+//    imshow("red", gray_image);
+//    waitKey();
+    vector<vector<Point>>contours;
+    vector<Vec4i> hierarchy;
+    findContours(gray_image, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+
+    vector <vector<Point>>::iterator iter = contours.begin();
+    for (; iter != contours.end();) {
+        double g_dConArea = contourArea(*iter);
+//        cout<<g_dConArea<<endl;
+        if (g_dConArea < 200) {
+            iter = contours.erase(iter);
+        } else {
+            ++iter;
+        }
+    }
+    Mat resultImage = Mat ::zeros(gray_image.size(),CV_8U);
+    drawContours(resultImage, contours, -1, Scalar(255, 255, 255));
+//    imshow("contour",resultImage);
+    RotatedRect bound_rect=minAreaRect(contours[0]);
+//    circle(gray_image,bound_rect.center,3,Scalar(0,0,0),-1,LINE_AA);
+//    imshow("draw2",gray_image);
+//    waitKey();
+    destroyWindow("draw2 ");
+    Point2d center( 0.0,0.0);
+    center= Point2d(bound_rect.center.y,bound_rect.center.x);
+    //    cout<<bound_rect.size;
+    cout<<"Back: "<<center<<endl;
+    return center;
+}
+
+int** matrix(Mat src, int &new_row, int &new_col) {
+    Mat gray;
+    gray=src.clone();
+    imshow("gray",gray);
+    int row = gray.rows;
+    int col = gray.cols;
+//    cout<<"row: "<<row<<" col: "<<col<<endl;
+    int **array = new int *[row];
+    for (int i = 0; i < row; i ++){
+        array[i] = new int[col];
+    }
+
+//    cvtColor(src,gray,CV_BGR2GRAY);
+//    threshold(gray,gray,95,255,CV_THRESH_BINARY);
+////    imshow("gray",gray);
+////    waitKey(0);
+////    Mat drawing = gray;
+//    //src:600*600
+////    Mat kern = (Mat_<char>(3,3) << 1,1,1,1,1,1,1,1,1);
+////    Mat kern = getStructuringElement(MORPH_RECT,Size(20,20));
+////    filter2D(gray,gray,-1,kern);
+////    rectangle(drawing,Point(500,0),Point(540,40),Scalar(255,0,0),-1);
+//
+//
+//
+//    vector<vector<Point>>contours;
+//    vector<Vec4i> hierarchy;
+//    findContours(gray, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+//    vector <vector<Point>>::iterator iter = contours.begin();
+//    for (; iter != contours.end();) {
+//        double g_dConArea = contourArea(*iter);
+////        cout<<g_dConArea<<endl;
+//        if (g_dConArea < 10000) {
+//            iter = contours.erase(iter);
+//        } else {
+//            ++iter;
+//        }
+//    }
+//    vector<Point2f> result;
+//    Mat resultImage = Mat ::zeros(gray.size(),CV_8U);
+//    drawContours(resultImage, contours, -1, Scalar(255, 255, 255),-1);
+//    imshow("contour",resultImage);
+////    Mat car = Mat ::zeros(gray.size(),CV_8U);
+////    car=resultImage-gray;
+////    imshow("car",car);
+//    gray=resultImage.clone();
+//    // change the mat into an array
+//
+
     for (int i = 0; i < row; i ++){
         for (int j = 0; j < col; j ++){
             array[i][j] = gray.at<uchar>(i, j)/255;
@@ -366,6 +505,10 @@ void Map::core_processing(int grade) {
 void Map::road_grade() {
     core_processing(1);
     core_processing(2);
+    core_processing(3);
+    core_processing(4);
+    core_processing(5);
+//    core_processing(6);
 }
 
 void Map::uniwalk(char ch, point &pt, point pt2, int seq, char s_e) {
@@ -525,7 +668,7 @@ void Map::final_road(int end_point) {
     }
 
     if(end_point==1){
-        queue<point> tmp = start_q;
+        queue<point> tmp;
         while(end_s.top()!=start_q.front()){
             tmp.push(start_q.front());
             start_q.pop();
@@ -576,10 +719,14 @@ int** Map::road_map() {
             start_q.pop();
         while(!end_s.empty())
             end_s.pop();
+        while(!route_q.empty())
+            route_q.pop();
+        turning_point.clear();
         while (count++ <= 6) {
 
             uniwalk(walk_choice(p1), p1,p2, g1, 's');
             g1--;
+            turning_point.push_back(pointd(p1.x,p1.y));
 //        print_road();
             if (-20>=road[p1.x][p1.y]&&road[p1.x][p1.y]>-10) {
                 end_point = 0;
@@ -587,6 +734,7 @@ int** Map::road_map() {
             }
 
             uniwalk(walk_choice(p2), p2,p1, g2, 'e');
+            turning_point.push_back(pointd(p2.x,p2.y));
             g2++;
 //        print_road();
             if (p1 == p2 || (-10<=road[p2.x][p2.y]&&road[p2.x][p2.y]<0)) {
@@ -598,54 +746,174 @@ int** Map::road_map() {
 //        print_road();
         ep=end_point;
     }
+//    delete same elements
+    if(turning_point[turning_point.size()-2]==turning_point[turning_point.size()-1])
+        turning_point.erase(turning_point.end()-1);
+    for (int k = 0; k < turning_point.size(); ++k) {
+        turning_point[k]=pointd(turning_point[k].x,turning_point[k].y);
+    }
     final_road(ep);
     return road;
 }
 
-void signal(char ch) {
-    cout<<ch;
+void Map::sort_turning() {
+    turning_point.clear();
+    cout<<turning_point.size()<<endl;
+    queue<pointd> tmp2=route_q;
+    pointd pt;
+    int i=0;
+    while(!tmp2.empty()){
+        i++;
+        pt=tmp2.front();
+        tmp2.pop();
+        if(i>10&&i%6==0)
+            turning_point.push_back(pointd(pt.x*core_sz,pt.y*core_sz));
+        }
+    turning_point.erase(turning_point.end()-1);
+    turning_point.erase(turning_point.end()-1);
+    turning_point.push_back(pointd(route_q.back().x*core_sz,route_q.back().y*core_sz));
+
+//    vector<pointd> tmp;
+//    queue<pointd> tmp2=route_q;
+//    pointd pt;
+//    while(!tmp2.empty()){
+//        pt=tmp2.front();
+//        tmp2.pop();
+//        for (int j = 0; j < turning_point.size(); ++j) {
+//            if(pt==turning_point[j])
+//                tmp.push_back(turning_point[j]);
+//        }
+//    }
+//    turning_point.clear();
+//    cout<<tmp.size()<<endl;
+//    for (int i = 0; i < tmp.size(); ++i) {
+//        turning_point.push_back(tmp[i]);
+//    }
 }
 
-void turnto(pointd dst,Car &car) {
-    signal('e');
-    double direction=(dst.y-car.center.y)/(dst.x-car.center.x);
-    while(fabs(atan(car.slope)-atan(direction))*PI2DEGREE>5){
-        signal('a');
-        car.slope=(car.front.y-car.back.y)/(car.front.x-car.back.x);
+void signal(char ch, int nwrite, int nread, int fd) {
+    char receive,stop;
+    stop='i';
+    if(ch!='i') {
+        if(ch!='a'&&ch!='c') {
+            nwrite = write(fd, &ch, 1);
+            printf("nwrite: %d\n write char: %c\n", nwrite, ch);
+            nread = read(fd, &receive, 1);
+            printf("nread: %d\n read char: %c\n", nread, receive);
+            usleep(150000);
+        }
+        else {
+            nwrite = write(fd, &ch, 1);
+            printf("nwrite: %d\n write char: %c\n", nwrite, ch);
+            nread = read(fd, &receive, 1);
+            printf("nread: %d\n read char: %c\n", nread, receive);
+            usleep(100000);
+        }
+//        waitKey(100);
     }
+
+    nwrite = write(fd, &stop, 1);
+    printf("nwrite: %d\n write char: %c\n", nwrite, stop);
+    nread = read(fd, &receive, 1);
+    printf("nread: %d\n read char: %c\n", nread, receive);
+    usleep(10000);
 }
 
-char turning(char ch) {
+int turnto(pointd dst,Car &car, int nwrite, int nread, int fd) {
+    bool flag=false;
+//    signal('i', nwrite, nread, fd);
+    pointd Vd=pointd((dst.x-car.center.x),(dst.y-car.center.y));//vector car->destination
+    cout<<"Vd: "<<Vd<<endl;
+    pointd Vc=pointd(car.front.x-car.back.x,car.front.y-car.back.y);//vector back->front
+    cout<<"Vc: "<<Vc<<endl;
+    double angle = (Vd.x*Vc.x+Vd.y*Vc.y)/sqrt(Vd.x*Vd.x+Vd.y*Vd.y)/sqrt(Vc.x*Vc.x+Vc.y*Vc.y);//cos theta
+    cout<<angle<<endl;
+    if(!(angle>0.92)){
+        flag=true;
+        if(lr) {
+            signal('a', nwrite, nread, fd);
+//            lr=false;
+            cout<<"turn left!"<<endl;
+        }
+        else{
+            signal('c', nwrite, nread, fd);
+//            lr=true;
+            cout<<"turn right!"<<endl;
+        }
+//        usleep(100000);
 
-    return ch;
+        pointd Vd=pointd((dst.x-car.center.x),(dst.y-car.center.y));//vector car->destination
+        pointd Vc=pointd(car.front.x-car.back.x,car.front.y-car.back.y);//vector back->front
+    }
+    return flag;
 }
 
-void Map::car_run(Mat &src) {
-    vector<Point2d> car = car_pos(src);
-    Point2d front = car[0];
-    Point2d back = car[1];
+int nearest(pointd pt, vector<pointd> vec) {
+    int i=0;
+    double min=10000;
+    vector<double> dis;
+    cout<<vec.size()<<endl;
+    for (int j = 0; j < vec.size(); ++j) {
+        dis.push_back(distance(pt,vec[j]));
+        cout<<vec[j]<<distance(pt,vec[j])<<endl;
+    }
+    for (int j = 0; j < dis.size(); ++j) {
+        if(dis[j]<min){
+           i=j;
+           min=dis[j];
+        }
+    }
+    return i;
+}
+
+bool Map::turning(pointd ch) {
+    bool flag=false;
+    for (int i = 0; i < turning_point.size(); ++i) {
+        if(ch==turning_point[i]){
+            flag=true;
+            break;
+        }
+    }
+    return flag;
+}
+
+void Map::car_run(Mat src, int nwrite, int nread, int fd) {
+    Point2d front = car_front(src);
+    Point2d back = car_back(src);
     pointd center((front.x+back.x)/2,(front.y+back.y)/2);
+    cout<<center<<endl;
+    bool flag=false;
     double route_x = center.x;
     double route_y = center.y;
+//    destroyAllWindows();
     double slope;
+//    cout<<"initial begin!"<<endl;
     car1.init(front,back,center,slope);
     if(front.x-back.x==0)
         slope=9999;
     else slope= (front.y-back.y)/(front.x-back.x);
-    pointd current = route_q.front();
-    pointd Next;
-    route_q.pop();
-    while(!route_q.empty()){
-        Next=route_q.front();
-        route_q.pop();
-        if(distance(Next,center)<=1)
-            break;
-        else if(distance(Next,center)>=3)
-            turnto(Next,car1);
-        else{
-
-
-        }
+//    cout<<"slope: "<<slope<<endl;
+    int pos=nearest(center,turning_point);
+//    int pos=0;
+    pointd pointd1 = turning_point[pos];
+    pointd current = pointd(pointd1.x,pointd1.y);
+    circle(src,Point2d(current.y,current.x),2,Scalar(0,0,0),-1);
+//    imshow("current",src);
+//    waitKey();
+    cout<<"current: "<<current<<endl;
+    if(distance(current,center)<=50){
+        turning_point.erase(turning_point.begin()+pos);
+        cout<<"next!"<<endl;
+        return;
     }
+    else if(distance(current,center)>=50)
+        flag=turnto(current,car1, nwrite, nread, fd);
+    if(!flag) {
+        signal('e', nwrite, nread, fd);
+        lr=(!lr);
+//        usleep(100000);//0.1s
+        cout << "Advance!" << endl;
+    }
+
 }
 
