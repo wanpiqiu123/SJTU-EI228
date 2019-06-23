@@ -6,8 +6,8 @@
 #define VISUAL_HEAD_H
 
 #include <iostream>
-#include  "opencv2/highgui.hpp"
-#include  "opencv2/imgproc.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
 #include <cmath>
 #include <vector>
 #include <stack>
@@ -17,14 +17,14 @@
 #include <ctime>
 #include <cstdlib>
 #include <unistd.h>
-#include     <stdio.h>      /*标准输入输出定义*/
-#include     <stdlib.h>     /*标准函数库定义*/
-#include     <sys/types.h>
-#include     <sys/stat.h>
-#include     "string.h"
-#include     <fcntl.h>      /*文件控制定义*/
-#include     <termios.h>    /*PPSIX 终端控制定义*/
-#include     <errno.h>      /*错误号定义*/
+#include <stdio.h>      /*标准输入输出定义*/
+#include <stdlib.h>     /*标准函数库定义*/
+#include <sys/types.h>
+#include <sys/stat.h>
+#include "string.h"
+#include <fcntl.h>      /*文件控制定义*/
+#include <termios.h>    /*PPSIX 终端控制定义*/
+#include <errno.h>      /*错误号定义*/
 #define FALSE  -1
 #define TRUE   0
 

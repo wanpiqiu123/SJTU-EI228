@@ -36,18 +36,6 @@ vector<Point> corner(vector<vector<Point>> vec, vector<Point2f> &result, Mat mat
     }
 
     for (int j = 0; j < contour.size(); ++j) {
-//        cout<<"col"<<mat.cols<<" rows: "<<mat.rows<<endl;
-//        cout<<'('<<contour[j].x<<','<<contour[j].y<<')'<<endl;
-
-//        if (contour[j].y/contour[j].x <result[1].y/result[1].x)
-//            result[1] = contour[j];
-//        if (contour[j].y/contour[j].x >result[2].y/result[2].x)
-//            result[2] = contour[j];
-//        if (contour[j].y/(mat.cols+2-contour[j].x) <result[0].y/(mat.cols+2-result[0].x))
-//            result[0] = contour[j];
-//        if (contour[j].y/(mat.cols+2-contour[j].x) >result[3].y/(mat.cols+2-result[3].x))
-//            result[3] = contour[j];
-
         if(distance(contour[j],p0)<distance(result[0],p0))
             result[0]=contour[j];
         if(distance(contour[j],p1)<distance(result[1],p1))
@@ -118,12 +106,6 @@ vector<Point2f> good_position(Mat &src) {
 //    imshow("threshold",gray_image);
     Mat element = getStructuringElement(MORPH_RECT, Size(5,5));
     dilate(gray_image,gray_image,element);
-//    erode(gray_image,gray_image,element);
-//    morphologyEx(gray_image,gray_image,MORPH_CLOSE,element);
-//    Mat morph;
-//    morphologyEx(gray_image,morph,MORPH_OPEN,element);
-//    imshow("Morphology",gray_image);
-
     vector<vector<Point>>contours;
     vector<Vec4i> hierarchy;
     findContours(gray_image, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
@@ -145,13 +127,6 @@ vector<Point2f> good_position(Mat &src) {
 
     Mat dots(gray_image.size(),CV_8UC1);
     corner(contours,result,resultImage);
-//    for (int i = 0; i < result.size(); ++i) {
-//        cout<<'('<<result[i].x<<','<<result[i].y<<')'<<endl;
-//    }
-//    draw_vec(result,resultImage);
-//    imshow("contour",resultImage);
-//    imshow("Morphology",morph);
-
     perspective(result,src ,src);
     Mat correct=src.clone();
     imshow("correct",src);
@@ -309,54 +284,11 @@ int** matrix(Mat src, int &new_row, int &new_col) {
         array[i] = new int[col];
     }
 
-//    cvtColor(src,gray,CV_BGR2GRAY);
-//    threshold(gray,gray,95,255,CV_THRESH_BINARY);
-////    imshow("gray",gray);
-////    waitKey(0);
-////    Mat drawing = gray;
-//    //src:600*600
-////    Mat kern = (Mat_<char>(3,3) << 1,1,1,1,1,1,1,1,1);
-////    Mat kern = getStructuringElement(MORPH_RECT,Size(20,20));
-////    filter2D(gray,gray,-1,kern);
-////    rectangle(drawing,Point(500,0),Point(540,40),Scalar(255,0,0),-1);
-//
-//
-//
-//    vector<vector<Point>>contours;
-//    vector<Vec4i> hierarchy;
-//    findContours(gray, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
-//    vector <vector<Point>>::iterator iter = contours.begin();
-//    for (; iter != contours.end();) {
-//        double g_dConArea = contourArea(*iter);
-////        cout<<g_dConArea<<endl;
-//        if (g_dConArea < 10000) {
-//            iter = contours.erase(iter);
-//        } else {
-//            ++iter;
-//        }
-//    }
-//    vector<Point2f> result;
-//    Mat resultImage = Mat ::zeros(gray.size(),CV_8U);
-//    drawContours(resultImage, contours, -1, Scalar(255, 255, 255),-1);
-//    imshow("contour",resultImage);
-////    Mat car = Mat ::zeros(gray.size(),CV_8U);
-////    car=resultImage-gray;
-////    imshow("car",car);
-//    gray=resultImage.clone();
-//    // change the mat into an array
-//
-
     for (int i = 0; i < row; i ++){
         for (int j = 0; j < col; j ++){
             array[i][j] = gray.at<uchar>(i, j)/255;
         }
     }
-//    for (int k = 0; k < 100; ++k) {
-//        for (int i = 0; i < 100; ++i) {
-//            cout<<array[k][i]<<'\t';
-//        }
-//        cout<<endl;
-//    }
 
 
     new_row=row/core_sz;
@@ -773,22 +705,6 @@ void Map::sort_turning() {
     turning_point.erase(turning_point.end()-1);
     turning_point.push_back(pointd(route_q.back().x*core_sz,route_q.back().y*core_sz));
 
-//    vector<pointd> tmp;
-//    queue<pointd> tmp2=route_q;
-//    pointd pt;
-//    while(!tmp2.empty()){
-//        pt=tmp2.front();
-//        tmp2.pop();
-//        for (int j = 0; j < turning_point.size(); ++j) {
-//            if(pt==turning_point[j])
-//                tmp.push_back(turning_point[j]);
-//        }
-//    }
-//    turning_point.clear();
-//    cout<<tmp.size()<<endl;
-//    for (int i = 0; i < tmp.size(); ++i) {
-//        turning_point.push_back(tmp[i]);
-//    }
 }
 
 void signal(char ch, int nwrite, int nread, int fd) {

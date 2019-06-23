@@ -22,14 +22,6 @@ int main() {
         printf("buff: %c\n",buu2);
     }
 
-//    for (int j = 0; j < 12; ++j) {
-//        read(fd, &buu2, 1);
-//        printf("buff: %c\n",buu2);
-//    }
-//    while((read(fd, &buu2, 1))==1){
-//        printf("buff: %c\n",buu2);
-//    }
-
     VideoCapture cap(0);
     if (!cap.isOpened()) {
         return -1;
@@ -143,28 +135,6 @@ int main() {
         waitKey(200);
 //        usleep(200000);
     }
-
-
-//    Mat src = imread("result_car1.png");
-////    resize(src,src,Size(src.cols/2,src.rows/2));
-////    good_position(src);
-////    waitKey();
-
-//    car_back(src);
-//    waitKey();
-
-//    int new_row, new_col;
-//    int** s_a = matrix(src,new_row,new_col);
-////    waitKey();
-//    Map my_map(s_a,new_row,new_col);
-//    my_map.road_grade();
-//    my_map.start_end();
-//    my_map.print_map();
-//    my_map.road_map();
-//    my_map.print_road();
-//    my_map.q_s_num();
-//    my_map.print_route();
-//    my_map.print_route_q();
 
     return 0;
 }
